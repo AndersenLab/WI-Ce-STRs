@@ -1,6 +1,5 @@
 setwd(glue::glue("{dirname(rstudioapi::getActiveDocumentContext()$path)}/"))
-#setwd("../")
-
+ 
 ### load R packages####
 
 library(tidyverse)
@@ -8,12 +7,12 @@ library(tidyverse)
 ### ggplot theme ####
 
 theme_cust <- theme_bw() + 
-  theme(plot.title = ggplot2::element_text(size=12,  color = "black"),
-        legend.text = ggplot2::element_text(size=12,  color = "black"),
-        legend.title =  ggplot2::element_text(size=12,  color = "black"),
-        axis.title =  ggplot2::element_text(size=12,  color = "black"),
-        axis.text =  ggplot2::element_text(size=12,  color = "black"),
-        strip.text = ggplot2::element_text(size=12, vjust = 1,  color = "black"),
+  theme(plot.title = ggplot2::element_text(size=10,  color = "black"),
+        legend.text = ggplot2::element_text(size=10,  color = "black"),
+        legend.title =  ggplot2::element_text(size=10,  color = "black"),
+        axis.title =  ggplot2::element_text(size=10,  color = "black"),
+        axis.text =  ggplot2::element_text(size=10,  color = "black"),
+        strip.text = ggplot2::element_text(size=10, vjust = 1,  color = "black"),
         strip.background = ggplot2::element_blank(), 
         panel.grid = ggplot2::element_blank(),
         text = ggplot2::element_text(family="Helvetica"))
@@ -36,23 +35,25 @@ period_size_color <- c("1"="gold2","2"="plum4","3"="darkorange1",
 
 
 fisher_enrich_func <- function(pt_deg){
-  sis <- pt_deg$sig_n # success-in-sample  ## number of positions with variants in arm
-  silp <- pt_deg$n - sis # success-in-left-part ## number of positions with variants in other parts of chromosomes
-  fis <- pt_deg$sig_total - sis   # failure-in-sample  ## number of positions with no variants in arm
-  filp <- pt_deg$total - pt_deg$sig_total - silp # failure-in-left-part ## number of positions with no variants in other parts of chromosomes
+  sis <- pt_deg$sig_n  
+  silp <- pt_deg$n - sis  
+  fis <- pt_deg$sig_total - sis   
+  filp <- pt_deg$total - pt_deg$sig_total - silp  
   ftp <- fisher.test(matrix(c(sis,silp,fis,filp), 2, 2), alternative='greater')
   return(ftp$p.value)
 }
+
+ 
 
 ############# Figure  1    ###############
 #          pSTR distribution             #
 ##########################################
 
-table_s1 <- data.table::fread("../processed_data/table_s1_refSTRs_pSTRs.tsv")
+table_s1 <- data.table::fread("../processed_data/table_s1_refSTRs_pSTRs.txt")  
 
 table_s1_poly <- table_s1 %>% 
-  dplyr::filter(polymorphic=="Yes")
-
+  dplyr::filter(pSTRs=="Yes")
+ 
 ###### fig_1a ######
 str_dist_polym <- table_s1_poly %>% 
   dplyr::filter(!Chr=="MtDNA")  
@@ -75,7 +76,8 @@ fig_1a <-  ggplot() +
 ###### fig_1b ######
 
 polystr_motif_count  <- table_s1_poly %>% 
-  dplyr::group_by(motif_geno,motif_length) %>% 
+  dplyr::mutate( motif_geno=motif_geno_fwd ) %>% 
+  dplyr::group_by(motif_geno,motif_length ) %>% 
   dplyr::count() %>% 
   dplyr::ungroup() %>% 
   dplyr::top_n(10, n)  %>% 
@@ -92,7 +94,7 @@ fig_1b <- ggplot(polystr_motif_count,aes(x=motif,y=n ,fill=factor(motif_length))
   theme(legend.position = "none") +
   labs(y="Number of sites",
        x="STR motif") +
-  scale_y_continuous(breaks=c(0, 750,1500),limits = c(0,1600) )
+  scale_y_continuous(breaks=c(0, 1000,1800),limits = c(0,1900) )
 
 ###### fig_1c ######
 
@@ -118,7 +120,7 @@ fig_1c <- ggplot(PolySTR_region,aes(x=gfeatures,y=ps2region,fill=factor(motif_le
   ylab("Percent of pSTRs (%)")  +
   labs(fill="Motif\nlength")+
   scale_fill_manual(values=period_size_color) +
-  geom_text(aes(label=STRby_REGIONs),y=115,size = 18/5)+
+  geom_text(aes(label=STRby_REGIONs),y=115,size = 10*5/14)+
   scale_y_continuous(breaks=c(0, 50, 100),limits = c(0,125) ) +
   theme(legend.position = "left")+ 
   guides(fill = guide_legend(nrow = 6)) 
@@ -162,10 +164,10 @@ fig_1d <-ggplot(enrich_PolySTR_region,
   xlab(expression(-log[10](italic(p)))) 
 
 ###### fig_1e ######
-
-
+ 
 enrichMotif_polySTR_region_stats <-  table_s1_poly %>% 
-  dplyr::group_by(gfeature, motif_geno) %>% 
+  dplyr::mutate( motif_geno=motif_geno_fwd ) %>% 
+  dplyr::group_by(gfeature, motif_geno ) %>% 
   dplyr::count(name = "sig_n") %>% 
   dplyr::ungroup() %>% 
   dplyr::group_by(gfeature) %>% 
@@ -175,7 +177,7 @@ enrichMotif_polySTR_region_stats <-  table_s1_poly %>%
   dplyr::mutate(n=sum(sig_n)) %>% 
   dplyr::ungroup() %>% 
   dplyr::mutate(total=sum(sig_n)) %>%
-  dplyr::group_by( gfeature,motif_geno)  %>% 
+  dplyr::group_by( gfeature,motif_geno )  %>% 
   dplyr::do(data.frame(x=fisher_enrich_func(.)))  %>%
   dplyr::rename(fisherp = x) %>%
   dplyr::ungroup() %>% 
@@ -187,11 +189,12 @@ enrichMotif_polySTR_region_stats <-  table_s1_poly %>%
                 padjustment="BF")  
 
 enrichMotif_polySTR_region <- enrichMotif_polySTR_region_stats %>% 
-  dplyr::filter(fisherp_adj<0.05)   %>% 
+  dplyr::filter(fisherp_adj<0.05)   %>%  
   dplyr::mutate(logp=-log10(fisherp_adj)) %>% 
   dplyr::mutate(motif_length=nchar(motif_geno))%>% 
   dplyr::arrange(  motif_length )  %>% 
-  dplyr::top_n(10, logp) 
+  dplyr::group_by(gfeature) %>% 
+  dplyr::top_n(3, logp) 
 
 
 enrichMotif_polySTR_region$gfeatures<- factor(enrichMotif_polySTR_region$gfeature,levels = c("promoter","enhancer","5'UTR","CDS","intron","3'UTR","pseudogene","RNAs & TEs","intergenic"))
@@ -202,7 +205,7 @@ fig_1e <- ggplot(enrichMotif_polySTR_region,
                  aes(y=gfeatures,x=logp,color=factor(motif_length)))+
   ggbeeswarm::geom_beeswarm(cex=2,groupOnX = F) +
   ggrepel::geom_text_repel(aes(label = motif_geno),  nudge_x = 3,segment.linetype=6,
-                           max.overlaps=Inf,
+                           max.overlaps=Inf,size=10*5/14,
                            box.padding = 0.5) +
   theme_cust+
   theme( legend.position = "none") +
@@ -217,7 +220,7 @@ fig_1e <- ggplot(enrichMotif_polySTR_region,
 
 fig_1bc <-  cowplot::plot_grid(fig_1b, fig_1c,
                               labels = c('', 'C'), 
-                              rel_widths =  c(1.2,2),
+                              rel_widths =  c(1.3,2),
                               label_size = 12, 
                               label_fontfamily="Helvetica",
                               axis = "t",
@@ -242,16 +245,7 @@ fig_1 <-  cowplot::plot_grid(fig_1a, fig_1bc,fig_1de,
 
 ggsave(fig_1, filename = paste( "../figures/Fig_1.png",sep = ""), units = "mm",height = 160, width = 170)
 
-
-
-
-
-
-
-
-
-
-
+ 
 ############# Figure  2    ###############
 #         expansion contraciton          #
 ##########################################
@@ -275,17 +269,18 @@ expansion_contractionS <- table_s1_poly %>%
    dplyr::select(ref_STR ,expansion_score,contraction_score,motif_length) %>% 
   tidyr::gather(diff,score,-ref_STR,-motif_length) %>% 
   dplyr::filter(!score==0) %>% 
- # dplyr::left_join(hipstr_reference)  %>% 
- # dplyr::left_join(gfeat) %>% 
   dplyr::ungroup() %>% 
   dplyr::group_by(diff,motif_length) %>% 
-  dplyr::mutate(mean_sc=mean(score)) %>% 
+  dplyr::mutate(lg_sc=log10(abs(score))) %>% 
+  dplyr::mutate(mean_lg_sc=mean(lg_sc),
+                mean_sc=mean(score),
+                median_sc=median(score)) %>% 
   dplyr::mutate(id=row_number(),
-                mean_sc=ifelse(id==1,round(mean(mean_sc),digits = 2),NA))
+                mean_lg_sc=ifelse(id==1,round(mean_lg_sc,digits = 2),NA))
 
 
 fig_2b <- ggplot(expansion_contractionS ,aes(score,fill=diff)) +
-  geom_histogram(color="black",# fill="lightskyblue2",
+  geom_histogram(color="black", 
                  bins =100,size=0.2) +
   theme_cust +
   xlab("Contraction / Expansion score")+
@@ -295,46 +290,24 @@ fig_2b <- ggplot(expansion_contractionS ,aes(score,fill=diff)) +
 
 ###### fig_2c ###### 
 
-expansion_contractionS_abs <- expansion_contractionS %>% dplyr::mutate(score=abs(score))
-
-
-fig_2c <- ggplot(expansion_contractionS_abs,aes(x=diff,y=abs(score),color=diff))+
+ 
+fig_2c <- ggplot(expansion_contractionS,aes(x=diff,y=lg_sc ,color=diff))+
   geom_violin(width=1.1,size=0.2)+
   geom_boxplot(width=0.08, color="black",fill="grey", alpha=0.2,outlier.shape = NA,size=0.2) + 
-  geom_point(aes(x=diff,y=abs(mean_sc)),size=0.5,color="red") +
+  geom_point(aes(x=diff,y=mean_lg_sc),size=0.5,color="red") +
   theme_cust +
-  ylab("Contraction /\nExpansion\nabsolute scores") +
-  ggpubr::stat_compare_means( #comparisons = list(c("contraction_score","expansion_score")), 
-                              label = "p.signif", method = "wilcox.test", 
-                              label.x=1.35,
-                            #  p.adjust.method = "bonferroni",
-                              symnum.args = list(cutpoints = c(0, 0.00001, 0.0001, 0.001,  1), 
-                                                 symbols = c("****","***","**",  "ns")),
-                              # method.args = list(alternative = "less" ),
-                              label.y = 2.3) +
+  ylab("Contraction /\nExpansion\ntransformed scores") +
+  ggpubr::stat_compare_means(  label = "p.signif", method = "wilcox.test", 
+    label.x=1.35,
+    symnum.args = list(cutpoints = c(0, 0.00001, 0.0001, 0.001,  1), 
+                       symbols = c("****","***","**",  "ns")) ,
+    label.y = 0.2) +
   facet_grid(.~motif_length,scales="free") +
   scale_color_manual(values=c("#E7B800", "#00AFBB")) +
   theme(axis.text.x = element_blank(),axis.title.x = element_blank(),
-        #    strip.text = element_blank(),
-        legend.position = "none") + 
-  scale_y_continuous(expand = c(0, 0), limits = c(0, 2.7))
-
-fig_2c_stats <- ggpubr::compare_means( score ~ diff, 
-                       data= expansion_contractionS_abs ,
-                       group.by = c("motif_length"),  
-                       # comparisons = list(c("Contraction","Expansion")), 
-                       # method.args = list(alternative = "greater" ),
-                       p.adjust.method = "bonferroni", 
-                       label = "p.signif", 
-                       method = "wilcox.test" )%>% 
-  dplyr::mutate(figure="FIG.2C") %>% 
-  dplyr::select(-p.format,-p.signif) %>% 
-  dplyr::mutate(group_factor="motif_length",
-                group_factor_catogory=motif_length,
-                method="two-sided Wilcoxon test",
-                padjustment="BF") %>% 
-  dplyr::select(figure,method,group_factor,group_factor_catogory,'.y.', group1,group2,p,padjustment,p.adj)
-
+        legend.position = "none")  + 
+   scale_y_continuous(expand = c(0, 0), limits = c(-2, 0.5))
+ 
 ###### fig_2d ###### 
 
 expand_frac <- table_s1_poly %>% 
@@ -343,12 +316,12 @@ expand_frac <- table_s1_poly %>%
   dplyr::mutate(frac=frac/100) %>% 
   dplyr::ungroup() %>% 
   dplyr::group_by(diff,motif_length)%>% 
-  dplyr::mutate(mean_frac=mean(frac)) %>% 
+  dplyr::mutate(mean_frac=mean(frac),
+                median_frac=median(frac)) %>% 
   dplyr::mutate(id=row_number(),
-                mean_frac=ifelse(id==1,round(mean(mean_frac),digits = 2),NA)) %>% 
+                mean_frac=ifelse(id==1,round(mean_frac,digits = 2),NA)) %>% 
   dplyr::ungroup() %>% 
   dplyr::mutate( diff=sub("(.*)(_frac)","\\1",diff))
-# dplyr::filter(!frac==0)
 
 
 
@@ -359,16 +332,11 @@ fig_2d <- ggplot(expand_frac,aes(x=diff,y=frac ,color=diff))+
   theme_cust +
   ylab("Allele frequency") +
   xlab("Variation to median allele")+
-  ggpubr::stat_compare_means(# comparisons = list(c("Contraction","Expansion")), 
-                              label = "p.signif",
+  ggpubr::stat_compare_means(label = "p.signif",
                               label.y = 0.53 ,  label.x=1.35,
-                              #   hide.ns = TRUE,
-                              # method.args = list(alternative = "greater" ),
-                             # p.adjust.method = "bonferroni",
                               symnum.args = list(cutpoints = c(0,  0.001,  1), 
                                                  symbols = c("****",   "ns")),
-                              method = "wilcox.test" 
-  ) +
+                              method = "wilcox.test" ) +
   facet_grid(.~motif_length,scales="free") +
   scale_color_manual(values=c("#E7B800", "#00AFBB")) +
   theme(axis.text.x = element_blank(), 
@@ -378,34 +346,20 @@ fig_2d <- ggplot(expand_frac,aes(x=diff,y=frac ,color=diff))+
 
 
 
-
-fig_2d_stats <-ggpubr::compare_means(frac ~ diff,
-                      comparisons = list(c("Contraction","Expansion")),
-                      expand_frac,
-                      method.args = list(alternative = "greater"), 
-                      method = "wilcox.test", 
-                      p.adjust.method = "bonferroni", 
-                      group.by = c("motif_length")) %>% 
-  dplyr::mutate(figure="FIG.2D") %>% 
-  dplyr::select(-p.format,-p.signif) %>% 
-  dplyr::mutate(group_factor="motif_length",
-                group_factor_catogory=motif_length,
-                method="two-sided Wilcoxon test",
-                padjustment="BF") %>% 
-  dplyr::select(figure,method,group_factor,group_factor_catogory,'.y.', group1,group2,p,padjustment,p.adj)
-
+ 
 
 
 ###### fig_2e ###### 
 
 expansion_contractionS_di <- table_s1_poly %>% 
+  dplyr::filter(!grepl("/",motif_geno)) %>% 
+  dplyr::mutate(motif_geno=motif_geno_fwd ) %>%
   dplyr::select(ref_STR ,expansion_score,contraction_score,motif_length,motif_geno) %>% 
   tidyr::gather(diff,score,-ref_STR,-motif_length,-motif_geno) %>% 
   dplyr::filter(motif_length==2) %>% 
   dplyr::mutate(diff=ifelse(score==0,"substitution",diff)) %>% 
   dplyr::group_by(motif_geno,diff,motif_length) %>% 
   dplyr::count()  %>% 
-  dplyr::filter(!grepl("/",motif_geno)) %>% 
   dplyr::group_by(motif_geno) %>% 
   dplyr::mutate(count_motif=sum(n)) %>% 
   dplyr::mutate(frac=100*n/count_motif) %>% 
@@ -476,11 +430,11 @@ fig_3a <- ggplot(num_allele,aes(n))   +
   ylab("Number of pSTRs") + 
   scale_y_continuous(breaks=c(0, 3000, 1500), limits=c(0, 3000))+ 
   scale_x_continuous(breaks=c(2,10,21) )  +
-  theme( axis.title.y = ggplot2::element_text(size=12,  color = "black", hjust = 0.2 )) 
+  theme( axis.title.y = ggplot2::element_text(size=10,  color = "black", hjust = 0.2 )) 
  
 ###### fig_3b ######
 
-majorAF_ExpectedHe <- data.table::fread("../processed_data/majorAF_ExpectedHe.tsv")
+majorAF_ExpectedHe <- data.table::fread("../processed_data/Expected_Heterozygosity_swept_div_all.csv")
 
 majorAF_data <- majorAF_ExpectedHe %>% 
   dplyr::group_by(ref_STR,n_st) %>% 
@@ -489,7 +443,7 @@ majorAF_data <- majorAF_ExpectedHe %>%
 
 
 fig_3b <- ggplot()   + 
-  ggplot2::stat_density(data=majorAF_data,aes(x=major_af,color=n_st ), geom="line",position = "identity",#linetype="dashed"
+  ggplot2::stat_density(data=majorAF_data,aes(x=major_af,color=n_st ), geom="line",position = "identity",
                          size=0.8 ) +
   scale_color_manual(values=c("#00AFBB", "#E7B800", "#FC4E07")) +
   theme_cust +
@@ -548,19 +502,24 @@ fig_3e <- ggplot(pca_SNV, aes(x=PC1,y=PC2)) +
   labs(x=paste0("PC1: ",unique(pca_SNV$PC1_var_exp)[1],"%"),
        y=paste0("PC2: ",unique(pca_SNV$PC2_var_exp)[1],"%"),
        color = "Sample locations") +
-  ggtitle("13,650 SNVs") +
+  ggtitle("13,580 SNVs") +
   scale_color_manual(values=ancestry.colours)
 
 
 
 ###### fig_3f ######
 
-fig_3f <- ggpubr::ggscatter(subset(majorAF_ExpectedHe,Chr != "MtDNA"), 
+data_fig_3f <- majorAF_ExpectedHe %>% 
+  dplyr::select(Chr,start,ref_STR,hets,n_st) %>% 
+  dplyr::distinct()  %>% 
+  dplyr::filter(Chr != "MtDNA")
+
+
+fig_3f <- ggpubr::ggscatter(data_fig_3f, 
                                       x = "start", y = "hets",  point=FALSE, palette = c("#00AFBB", "#E7B800", "#FC4E07"),
                                       add = "loess", conf.int = FALSE,color="n_st" ) + 
   labs(x= "Genomic position (Mb)",
-       y=#"Expected\nHeterozygosity"
-         expression(italic(H)[E])) +
+       y= expression(italic(H)[E])) +
   facet_grid(.~Chr,scales="free")+
   theme_cust +
   theme( axis.text.x = element_blank(), 
@@ -584,8 +543,6 @@ fig3de <- cowplot::plot_grid(fig_3d,  fig_3e,
                              rel_widths = c( 1,1.75  ),
                              label_size = 12, 
                              label_fontfamily="Helvetica",
-                             # axis = "tblr",
-                             # align = "v",
                              nrow = 1)
 
 fig3 <-  cowplot::plot_grid(fig3abc, fig3de, fig_3f,  
@@ -593,7 +550,6 @@ fig3 <-  cowplot::plot_grid(fig3abc, fig3de, fig_3f,
                             rel_heights =  c(1.2,1.5,1.1 ),
                             label_size = 12, 
                             label_fontfamily="Helvetica",
-                            #  axis = "lr",
                             align = "v",
                             nrow = 3)
 
@@ -622,31 +578,18 @@ data_fig_4a <- data_fig_4 %>%
   dplyr::distinct() %>% 
   dplyr::mutate(mutation="All mutations")
 
-
-
-ggpubr::compare_means( mutation_rate ~ strain, 
-                       data= data_fig_4a ,
-                       p.adjust.method = "bonferroni", 
-                       label = "p.signif", 
-                       method = "wilcox.test" ) %>% 
-  dplyr::filter(p.adj<0.05)
-
-
+ 
 
 fig_4a <- ggplot(data_fig_4a,aes(x=strain,y=mutation_rate))+
   geom_jitter( shape=20,position=position_jitter(0.4), size=1, alpha=0.8 ,aes(color=strain)) +
   geom_boxplot(outlier.shape = NA,fill=NA ,aes(color=strain)) +
   theme_cust +
   labs(x="Strain",y="ANC-O1MA\nMutation rate" ) +
-  # facet_grid(.~mutation ,scales = "free") +
   theme( legend.position = "none"  ) +
   scale_color_manual(values = c("orange","#007e2f","#ffcd12","#721b3e") ) +
-  ggpubr::stat_compare_means( # comparisons = list(c("N2","PB306")),
-    label.y = 0.000135,
+  ggpubr::stat_compare_means(label.y = 0.000135,
     label.x = 1.5,
     size = 4,
-    # symnum.args = list(cutpoints = c(0, 0.0001, 0.001,  1), 
-    #                     symbols = c("****","**",  "ns")),
     label = "p.signif", 
     method = "wilcox.test") + 
   scale_y_continuous(labels = function(x) format(x, scientific = TRUE),limits = c(0,1.5e-04), breaks = c(0, 7.5e-05, 1.5e-04))   
@@ -661,25 +604,7 @@ data_fig_4b <- data_fig_4 %>%
                   motif_geno=="All" &
                   gfeature=="All" &
                   OMA=="O1MA") 
-
-
-data_fig_4b_stats <- ggpubr::compare_means( mutation_rate ~ strain, 
-                       data= data_fig_4b ,
-                       group.by = c( "mutation" ),  
-                       p.adjust.method = "bonferroni", 
-                       label = "p.signif", 
-                       method = "wilcox.test" ) %>% 
-  #dplyr::filter(p.adj<0.05)%>% 
-  dplyr::mutate(figure="FIG.4B") %>% 
-  dplyr::select(-p.format,-p.signif) %>% 
-  dplyr::mutate(group_factor="mutation",
-                group_factor_catogory=mutation,
-                method="two-sided Wilcoxon test",
-                padjustment="BF") %>% 
-  dplyr::select(figure,method,group_factor,group_factor_catogory,'.y.', group1,group2,p,padjustment,p.adj)
-
-
-
+ 
 
 fig_4b <- ggpubr::ggboxplot(data_fig_4b, x="mutation",y="mutation_rate",outlier.shape = NA,
                             color="strain"  ) +
@@ -691,50 +616,12 @@ fig_4b <- ggpubr::ggboxplot(data_fig_4b, x="mutation",y="mutation_rate",outlier.
   ggpubr::stat_compare_means( 
     aes(group = strain),
     label = "p.signif",   label.y = 4.8e-05,
-    #  hide.ns=TRUE,
     size = 4,
     method = "wilcox.test") + 
   scale_y_continuous(labels = function(x) format(x, scientific = TRUE),limits = c(0, 5.2e-05), breaks = c(0, 2.5e-05, 5e-05))   
 
 
-
-
-data_fig_4b_stats2 <- ggpubr::compare_means( mutation_rate ~ mutation, 
-                                           #  comparisons = list(c("deletions","insertions")),
-                                           #  data=  subset(data_fig_4b, mutation %in% c("insertions","deletions")) ,
-                                           data=  data_fig_4b ,
-                                             group.by = c( "strain" ),  
-                                             p.adjust.method = "bonferroni", 
-                                              label = "p.signif", 
-                                             method = "wilcox.test" ) %>% 
-  # dplyr::filter(p.adj<0.05) %>% 
-  dplyr::mutate(figure="FIG.4B_related") %>% 
-  dplyr::select(-p.format,-p.signif) %>% 
-  dplyr::mutate(group_factor="strain",
-                group_factor_catogory=strain,
-                method="two-sided Wilcoxon test",
-                padjustment="BF") %>% 
-  dplyr::select(figure,method,group_factor,group_factor_catogory,'.y.', group1,group2,p,padjustment,p.adj)
  
- 
-data_fig_4b_related <- subset(data_fig_4b, mutation %in% c("insertions","deletions"))  %>% 
-  dplyr::group_by(strain,Line) %>% 
-  dplyr::mutate(mutation_rate=sum(mutation_rate)) %>% 
-  dplyr::select(-mutation,-N_mutation) %>% 
-  dplyr::distinct() %>% 
-  dplyr::mutate(mutation="indels") %>% 
-  dplyr::bind_rows(data_fig_4b) %>% 
-  dplyr::filter(!mutation %in% c("insertions","deletions"))
-
-
-ggpubr::compare_means( mutation_rate ~ mutation, 
-                       #  comparisons = list(c("deletions","insertions")),
-                       #  data=  subset(data_fig_4b, mutation %in% c("insertions","deletions")) ,
-                       data=  data_fig_4b_related ,
-                       group.by = c( "strain" ),  
-                       p.adjust.method = "bonferroni", 
-                       label = "p.signif", 
-                       method = "wilcox.test" )
 ###### fig_4c ######
 
 data_fig_4c <- data_fig_4 %>% 
@@ -752,30 +639,13 @@ data_fig_4c <- data_fig_4 %>%
 
 
 data_fig_4c$gfeatures<- factor(data_fig_4c$gfeature,levels = c("promoter","enhancer","5'UTR","CDS","intron","3'UTR","pseudogene   ","RNAs & TEs","intergenic"))
-
-
-data_fig_4c_stats <- ggpubr::compare_means(mutation_rate~gfeatures,
-                                         data_fig_4c,  
-                                         p.adjust.method = "bonferroni", 
-                                         # alternative="less",
-                                         method = "wilcox.test", 
-                                         ref.group = "CDS" ) %>% 
-  #dplyr::filter(p.adj<0.05)%>% 
-  dplyr::mutate(figure="FIG.4C") %>% 
-  dplyr::select(-p.format,-p.signif) %>% 
-  dplyr::mutate(group_factor=NA,
-                group_factor_catogory=NA,
-                method="two-sided Wilcoxon test",
-                padjustment="BF") %>% 
-  dplyr::select(figure,method,group_factor,group_factor_catogory,'.y.', group1,group2,p,padjustment,p.adj)
-
-
+ 
 fig_4c <-ggpubr::ggboxplot(data_fig_4c, x="gfeatures",y="mutation_rate",outlier.shape = NA  ) +
   geom_point( position = position_jitterdodge(jitter.width = 0.2) ,
               aes(color=strain), size=0.5, alpha=0.8)+
   theme_cust +
   theme(legend.position = "none",
-        axis.text.x =  ggplot2::element_text(size=8,#angle = 45, hjust = 1,  
+        axis.text.x =  ggplot2::element_text(size=8, 
                                              color = "black") )+
   scale_color_manual(values = c("orange","#007e2f","#ffcd12","#721b3e") ) +
   labs(x="Genomic features",y="ANC-O1MA\nMutation rate" ) + 
@@ -791,13 +661,6 @@ fig_4c <-ggpubr::ggboxplot(data_fig_4c, x="gfeatures",y="mutation_rate",outlier.
                      breaks = c(0, 1e-04,  2e-04 ))   
 
 
-
-
-
-
-
-
-
 ###### fig_4d ######
 
 data_fig_4d <- data_fig_4 %>% 
@@ -810,17 +673,10 @@ data_fig_4d <- data_fig_4 %>%
   dplyr::mutate(mutation_rate=sum(mutation_rate)) %>% 
   dplyr::select(-mutation,-N_mutation ) %>% 
   dplyr::distinct() %>% 
-  dplyr::mutate(mutation="All mutations")
+  dplyr::mutate(mutation="All mutations")%>% 
+  dplyr::ungroup()
 
-
-
-ggpubr::compare_means( mutation_rate ~ Fitness, 
-                       data= data_fig_4d ,
-                       p.adjust.method = "bonferroni", 
-                       label = "p.signif", 
-                       method = "wilcox.test" ) %>% 
-  dplyr::filter(p.adj<0.05)
-
+ 
 
 
 fig_4d <- ggplot(data_fig_4d,aes(x=Fitness,y=mutation_rate))+
@@ -828,26 +684,15 @@ fig_4d <- ggplot(data_fig_4d,aes(x=Fitness,y=mutation_rate))+
   geom_boxplot(outlier.shape = NA,fill=NA ,aes(color=Fitness)) +
   theme_cust +
   labs(x="Fitness of O1MA progenitors",y="O1MA-O2MA\nMutation rate" ) +
-  # facet_grid(.~mutation ,scales = "free") +
   theme( legend.position = "none" ,
-         axis.title.x =  ggplot2::element_text(size=12,  color = "black",hjust =  0.9) ) +
+         axis.title.x =  ggplot2::element_text(size=10,  color = "black",hjust =  0.9) ) +
   scale_color_manual(values = c( "black", 'darkgray') ) +
-  ggpubr::stat_compare_means( # comparisons = list(c("N2","PB306")),
-    label.y = 8.8e-05,
+  ggpubr::stat_compare_means( label.y = 8.8e-05,
     label.x = 1.5,
     size = 4,
-    # symnum.args = list(cutpoints = c(0, 0.0001, 0.001,  1), 
-    #                     symbols = c("****","**",  "ns")),
     label = "p.signif", 
     method = "wilcox.test") + 
   scale_y_continuous(labels = function(x) format(x, scientific = TRUE),limits = c(0,1e-04), breaks = c(0, 5e-05, 1e-04))   
-
-
-
-
-
-
-
 
 
 ###### fig_4e ######
@@ -860,25 +705,7 @@ data_fig_4e <- data_fig_4 %>%
                   OMA=="O2MA",
                 comparison=="O1MA-O2MA") 
 
-
-data_fig_4e_stats <- ggpubr::compare_means( mutation_rate ~ Fitness, 
-                       data= data_fig_4e ,
-                       group.by = c( "mutation" ),  
-                       p.adjust.method = "bonferroni", 
-                       label = "p.signif", 
-                       method = "wilcox.test" ) %>% 
- # dplyr::filter(p.adj<0.05)%>% 
-  dplyr::mutate(figure="FIG.4E") %>% 
-  dplyr::select(-p.format,-p.signif) %>% 
-  dplyr::mutate(group_factor="mutation",
-                group_factor_catogory=mutation,
-                method="two-sided Wilcoxon test",
-                padjustment="BF") %>% 
-  dplyr::select(figure,method,group_factor,group_factor_catogory,'.y.', group1,group2,p,padjustment,p.adj)
-
-
-
-
+  
 fig_4e <- ggpubr::ggboxplot(data_fig_4e, x="mutation",y="mutation_rate",outlier.shape = NA,
                             color="Fitness"  ) +
   geom_point( position = position_jitterdodge(jitter.width = 0.2) ,aes(color=Fitness), size=0.5, alpha=0.8)+
@@ -889,17 +716,9 @@ fig_4e <- ggpubr::ggboxplot(data_fig_4e, x="mutation",y="mutation_rate",outlier.
   ggpubr::stat_compare_means( 
     aes(group = Fitness),
     label = "p.signif",   label.y = 7e-05,
-    # hide.ns=TRUE,
     size = 4,
     method = "wilcox.test") + 
   scale_y_continuous(labels = function(x) format(x, scientific = TRUE),limits = c(0,8e-05), breaks = c(0,   4e-05,   8e-05))   
-
-
-
-
-
-
-
 
 
 ###### fig_4f ######
@@ -910,23 +729,7 @@ data_fig_4f <- data_fig_4 %>%
                   gfeature=="All" &
                   OMA=="O2MA",
                 comparison=="O1MA-O2MA")  
-
-data_fig_4f_stats <-ggpubr::compare_means( mutation_rate ~ Fitness, 
-                                         data= data_fig_4f ,
-                                         group.by = c( "mutation","motif_length" ),  
-                                         p.adjust.method = "bonferroni", 
-                                         label = "p.signif", 
-                                         method = "wilcox.test" ) %>% 
- # dplyr::filter(p.adj<0.05) %>% 
-  dplyr::mutate(figure="FIG.4F") %>% 
-  dplyr::select(-p.format,-p.signif) %>% 
-  dplyr::mutate(group_factor="mutation, motif_length",
-                group_factor_catogory=paste0(mutation,  ", ", motif_length),
-                method="two-sided Wilcoxon test",
-                padjustment="BF") %>% 
-  dplyr::select(figure,method,group_factor,group_factor_catogory,'.y.', group1,group2,p,padjustment,p.adj)
-
-
+ 
 
 fig_4f <- ggpubr::ggboxplot(subset(data_fig_4f, motif_length %in% c(1,2)), x="mutation",y="mutation_rate",outlier.shape = NA,
                             color="Fitness"  ) +
@@ -939,7 +742,6 @@ fig_4f <- ggpubr::ggboxplot(subset(data_fig_4f, motif_length %in% c(1,2)), x="mu
   ggpubr::stat_compare_means( 
     aes(group = Fitness),
     label = "p.signif",   label.y = 1e-04,
-    # hide.ns=TRUE,
     symnum.args = list(cutpoints = c(0, 0.001, 0.003,  1), 
                        symbols = c("***","*",  "ns")),
     size = 4,
@@ -975,16 +777,83 @@ fig_4de <-  cowplot::plot_grid(  fig_4d, fig_4e,
 
 fig_4 <- cowplot::plot_grid(  fig_4ab, fig_4c,  fig_4de,fig_4f,
                               labels = c('A', 'C' ,'D' ,'F' ), 
-                              # rel_widths =  c( 1.5 ,3 ),
                               label_size = 12, 
                               label_fontfamily="Helvetica",
-                              #  align = "v",
                               axis = "lr",
                               nrow =4)
 
 
 ggsave(fig_4, filename = paste( "../figures/Fig_4.png",sep = ""), units = "mm",height =  180, width = 170)
 
+
+############# Figure  5    ###############
+#          STR and phenotypes           #
+##########################################
+
+data_fig_5 <- data.table::fread("../processed_data/table_s4_pSTRonPhenotypes.txt")
+
+
+traits_name_df <- data.frame(organismal_trait=c("broods","abamectin_norm.n","arsenic_pc1","Albendazole_q90.TOF",
+                                                "bleo_medianEXT","dauer_frac","amsacrine_f.L1","etoposide_median.TOF",
+                                                "propionicL1survival","telomere_resids","zinc_norm_EXT"),
+                             trait_name=c("Lifetime fecundity","Response to abamectin","Response to arsenic","Response to albendazole",
+                                          "Response to bleomycin","Dauer formation","Response to amsacrine","Response to etoposide",
+                                          "Response to propionate","Telomere length","Response to zinc") )
+
+
+
+
+data_fig_5_pos <- table_s1_poly %>% dplyr::select(pSTR=ref_STR,Chr,start) %>% 
+  dplyr::left_join(data_fig_5) %>% 
+  na.omit() %>% 
+  dplyr::left_join(traits_name_df)
+
+
+STRmanha_plt_list=list()
+
+for( tr in unique(data_fig_5_pos$organismal_trait)) {
+  
+  data_fig_5_tr <- data_fig_5_pos %>% 
+    dplyr::filter(organismal_trait==tr) %>% 
+    dplyr::filter(!Chr=="MtDNA")
+  
+  STRmanha_plt <- ggplot(data_fig_5_tr,aes(x=start/1e6,y=-log10(lrt_pvalue),color=BF_significant))+
+    geom_point(size=0.3)+
+    theme_cust+
+    facet_grid(.~Chr,scales = "free")+
+    scale_color_manual(values = c("gray69","red"))+
+    ylab(expression(-log[10](italic(p)))) +
+    xlab("Genomic position (Mb)")+
+    theme(axis.text.x = element_blank(),
+          legend.position = "none",
+          panel.spacing = unit(0.1,"line"))+
+    ggtitle(unique(data_fig_5_tr$trait_name))
+  
+  STRmanha_plt_list[[tr]] <- STRmanha_plt
+}
+
+fig_5 <-  cowplot::plot_grid(STRmanha_plt_list$broods+ theme(axis.title.x = element_blank()),  
+                             STRmanha_plt_list$dauer_frac+ theme(axis.title.x = element_blank()), 
+                             STRmanha_plt_list$telomere_resids+ theme(strip.text = element_blank(), axis.title.x = element_blank()),
+                             STRmanha_plt_list$abamectin_norm.n+ theme(strip.text = element_blank(), axis.title.x = element_blank()), 
+                             STRmanha_plt_list$Albendazole_q90.TOF+ theme(strip.text = element_blank(), axis.title.x = element_blank()),
+                             STRmanha_plt_list$arsenic_pc1+ theme(strip.text = element_blank(), axis.title.x = element_blank()), 
+                             STRmanha_plt_list$bleo_medianEXT+ theme(strip.text = element_blank(), axis.title.x = element_blank()), 
+                             STRmanha_plt_list$amsacrine_f.L1+ theme(strip.text = element_blank(), axis.title.x = element_blank()), 
+                             STRmanha_plt_list$propionicL1survival+ theme(strip.text = element_blank(), axis.title.x = element_blank()), 
+                             STRmanha_plt_list$zinc_norm_EXT+ theme(strip.text = element_blank(), axis.title.x = element_blank()), 
+                             STRmanha_plt_list$etoposide_median.TOF + theme(strip.text = element_blank()),
+                             labels = c('A', 'B', 'C', 'D', 'E', 'F',
+                                        'G', 'H', 'I', 'J', 'K'), 
+                             rel_heights =  c(1.2,1,1,1,1,1.2 ),
+                             label_size = 12, 
+                             label_fontfamily="Helvetica",
+                             axis = "lr",
+                             align = "v",
+                             ncol = 2,
+                             nrow = 6)
+
+ggsave(fig_5, filename = paste( "../figures/Fig_5.png",sep = ""), units = "mm",height = 200, width = 170)
 
 
 ##############################################
@@ -1021,7 +890,7 @@ fig_S1b <- ggplot() +
   ylab("Number of STRs")  +
   scale_fill_manual(values=period_size_color) +
   theme(legend.position = "none" ,
-        plot.title =   ggplot2::element_text(size=12,  color = "black"))
+        plot.title =   ggplot2::element_text(size=10,  color = "black"))
 
 
 fig_S1 <-  cowplot::plot_grid(fig_S1a, fig_S1b,  
@@ -1038,10 +907,55 @@ ggsave(fig_S1, filename = paste( "../figures/Supp_fig1_ref_dist.png",sep = ""), 
 
 
 ############# Figure  S2    ###############
+#          composition                  #
+##########################################
+ 
+
+perfect <- table_s1 %>% 
+  dplyr::filter(!is.na(perfect_str)) %>% 
+  dplyr::select(ref_STR,Chr,start,end,polymorphic,perfect_str,pSTRs) %>% 
+  dplyr::group_by(perfect_str) %>% 
+  dplyr::add_count(name = "All_n") %>% 
+  dplyr::group_by(perfect_str,pSTRs) %>% 
+  dplyr::add_count(name = "pSTRs_n") %>% 
+  dplyr::ungroup() %>% 
+  dplyr::distinct(perfect_str,All_n,pSTRs_n,pSTRs) %>% 
+  tidyr::gather(category,Counts,-perfect_str,-pSTRs) %>% 
+  dplyr::filter(!(pSTRs=="No" & category=="pSTRs_n")) %>% 
+  dplyr::select(-pSTRs) %>% 
+  dplyr::distinct() 
+
+
+
+perfect_plt_data <- perfect %>% 
+  dplyr::mutate(perfect_str=gsub('_', '-', perfect_str),
+                category=ifelse(category=="pSTRs_n", "9,691 pSTRs","27,667 STRs with polymorphisms"))
+
+perfect_plt_data$perfect_str2<- factor(perfect_plt_data$perfect_str,levels = c("compound-interrupted",
+                                                                               "compound-center-perfect",
+                                                                               "compound-perfect",
+                                                                               "simple-interrupted",
+                                                                               "simple-center-perfect",
+                                                                               "simple-perfect"))
+
+fig_S2 <-ggplot(perfect_plt_data,aes(x=perfect_str2,y=Counts))+
+  geom_bar(stat='identity',fill=NA,color="black") +
+  theme_cust+
+  coord_flip() +
+  facet_grid(.~category,scales = "free",space = "free") +
+  theme(axis.title.y=element_blank(),
+        plot.margin = unit(c(1, 4, 1, 1), "mm"))+
+  scale_y_continuous(breaks=seq(0, 20000,5000)  )
+
+
+ggsave(fig_S2, filename = paste( "../figures/Supp_fig2_perfectSTR.png",sep = ""), units = "mm",height = 100, width = 170)
+
+
+############# Figure  S3    ###############
 #          pSTR distribution             #
 ##########################################
 
-fig_S2 <- ggplot() + 
+fig_S3 <- ggplot() + 
   geom_histogram(data=str_dist_polym,aes(x=start/1e6,fill=factor(motif_length) ),bins = 50 )  + 
   facet_grid(motif_length~Chr,scales = "free")+
   theme_cust +
@@ -1049,20 +963,21 @@ fig_S2 <- ggplot() +
   ylab("Number of polymorphic STRs")  +
   scale_fill_manual(values=period_size_color) +
   theme(legend.position = "none" ,
-        plot.title =   ggplot2::element_text(size=12,  color = "black"))
+        plot.title =   ggplot2::element_text(size=10,  color = "black"))
 
-ggsave(fig_S2, filename = paste( "../figures/Supp_fig2_polystr_dist_size.png",sep = ""), units = "mm",height = 160, width = 170)
-
-
+ggsave(fig_S3, filename = paste( "../figures/Supp_fig3_polystr_dist_size.png",sep = ""), units = "mm",height = 160, width = 170)
 
 
-############# Figure  S3    ###############
+
+
+############# Figure  S4    ###############
 #          refSTR motif enrichment       #
 ##########################################
  
-###### fig_S3a  ######
+###### fig_S4a  ######
 
 refstr_motif_count  <- table_s1 %>% 
+  dplyr::mutate(motif_geno=motif_geno_fwd ) %>%
   dplyr::group_by(motif_geno,motif_length) %>% 
   dplyr::count() %>% 
   dplyr::ungroup() %>% 
@@ -1072,7 +987,7 @@ refstr_motif_count  <- table_s1 %>%
 refstr_motif_count$motif <- factor(refstr_motif_count$motif_geno, levels = refstr_motif_count$motif_geno )
 
 
-fig_S3a <- ggplot(refstr_motif_count,aes(x=motif,y=n ,fill=factor(motif_length))) +
+fig_S4a <- ggplot(refstr_motif_count,aes(x=motif,y=n ,fill=factor(motif_length))) +
   geom_bar(stat='identity') +
   scale_fill_manual(values=period_size_color) +
   theme_cust +
@@ -1082,7 +997,7 @@ fig_S3a <- ggplot(refstr_motif_count,aes(x=motif,y=n ,fill=factor(motif_length))
        x="STR motif") +
   scale_y_continuous(breaks=c(0, 4000,8000), limits = c(0,9000))
 
-###### fig_S3b ######
+###### fig_S4b ######
 
 refSTR_region <- table_s1 %>% 
   dplyr::group_by(gfeature,motif_length) %>% 
@@ -1098,7 +1013,7 @@ refSTR_region$gfeatures<- factor(refSTR_region$gfeature,levels = c("promoter","e
 
 #plot
 
-fig_S3b <- ggplot(refSTR_region,aes(x=gfeatures,y=ps2region,fill=factor(motif_length))) + 
+fig_S4b <- ggplot(refSTR_region,aes(x=gfeatures,y=ps2region,fill=factor(motif_length))) + 
   geom_bar(stat='identity', position = position_stack(reverse = TRUE)) +
   coord_flip() +
   theme_cust +
@@ -1106,12 +1021,12 @@ fig_S3b <- ggplot(refSTR_region,aes(x=gfeatures,y=ps2region,fill=factor(motif_le
   ylab("Percent of pSTRs (%)")  +
   labs(fill="Motif\nlength")+
   scale_fill_manual(values=period_size_color) +
-  geom_text(aes(label=STRby_REGIONs),y=115,size = 18/5)+
+  geom_text(aes(label=STRby_REGIONs),y=115,size = 10*5/14)+
   scale_y_continuous(breaks=c(0, 50, 100),limits = c(0,125) ) +
   theme(legend.position = "left")+ 
   guides(fill = guide_legend(nrow = 6)) 
 
-###### fig_S3c ######
+###### fig_S4c ######
 
 enrich_refSTR_region_stats <- refSTR_region %>% 
   dplyr::ungroup() %>% 
@@ -1140,7 +1055,7 @@ enrich_refSTR_region <- enrich_refSTR_region_stats %>%
 enrich_refSTR_region$gfeatures<- factor(enrich_refSTR_region$gfeature,levels = c("promoter","enhancer","5'UTR","CDS","intron","3'UTR","pseudogene","RNAs & TEs","intergenic"))
 
 
-fig_S3c <- ggplot(enrich_refSTR_region,
+fig_S4c <- ggplot(enrich_refSTR_region,
                 aes(y=gfeatures,x=logp,color=factor(motif_length)))+
   ggbeeswarm::geom_beeswarm(cex=2,groupOnX = F)+
   theme_cust+
@@ -1150,11 +1065,12 @@ fig_S3c <- ggplot(enrich_refSTR_region,
   ylab("Genomic features")+
   xlab(expression(-log[10](italic(p)))) 
 
-###### fig_S3d ######
+###### fig_S4d ######
 
 
 enrichMotif_refSTR_region_stats  <-  table_s1 %>% 
-  dplyr::group_by(gfeature, motif_geno) %>% 
+  dplyr::mutate(motif_geno=motif_geno_fwd ) %>% 
+  dplyr::group_by(gfeature, motif_geno ) %>% 
   dplyr::count(name = "sig_n") %>% 
   dplyr::ungroup() %>% 
   dplyr::group_by(gfeature) %>% 
@@ -1164,7 +1080,7 @@ enrichMotif_refSTR_region_stats  <-  table_s1 %>%
   dplyr::mutate(n=sum(sig_n)) %>% 
   dplyr::ungroup() %>% 
   dplyr::mutate(total=sum(sig_n)) %>%
-  dplyr::group_by( gfeature,motif_geno)  %>% 
+  dplyr::group_by( gfeature,motif_geno )  %>% 
   dplyr::do(data.frame(x=fisher_enrich_func(.)))  %>%
   dplyr::rename(fisherp = x) %>%
   dplyr::ungroup() %>% 
@@ -1176,21 +1092,22 @@ enrichMotif_refSTR_region_stats  <-  table_s1 %>%
                 padjustment="BF")  
 
 enrichMotif_refSTR_region <- enrichMotif_refSTR_region_stats %>% 
-  dplyr::filter(fisherp_adj<0.05)   %>% 
+  dplyr::filter(fisherp_adj<0.05)   %>%  
   dplyr::mutate(logp=-log10(fisherp_adj)) %>% 
   dplyr::mutate(motif_length=nchar(motif_geno))%>% 
   dplyr::arrange(  motif_length )  %>% 
-  dplyr::top_n(10, logp) 
+  dplyr::group_by(gfeature) %>% 
+  dplyr::top_n(3, logp) 
 
 
 enrichMotif_refSTR_region$gfeatures<- factor(enrichMotif_refSTR_region$gfeature,levels = c("promoter","enhancer","5'UTR","CDS","intron","3'UTR","pseudogene","RNAs & TEs","intergenic"))
 
 
 
-fig_S3d <- ggplot(enrichMotif_refSTR_region,
+fig_S4d <- ggplot(enrichMotif_refSTR_region,
                  aes(y=gfeatures,x=logp,color=factor(motif_length)))+
   ggbeeswarm::geom_beeswarm(cex=2,groupOnX = F) +
-  ggrepel::geom_text_repel(aes(label = motif_geno),  nudge_x = 3,segment.linetype=6,
+  ggrepel::geom_text_repel(aes(label = motif_geno),  nudge_x = 3,segment.linetype=6,size=10*5/14,
                            max.overlaps=Inf,
                            box.padding = 0.5) +
   theme_cust+
@@ -1204,7 +1121,7 @@ fig_S3d <- ggplot(enrichMotif_refSTR_region,
 
 ###### fig S3 #####
 
-fig_S3ab <-  cowplot::plot_grid(fig_S3a, fig_S3b,
+fig_S4ab <-  cowplot::plot_grid(fig_S4a, fig_S4b,
                                labels = c('', 'B'), 
                                rel_widths =  c(1.3,2),
                                label_size = 12, 
@@ -1212,42 +1129,41 @@ fig_S3ab <-  cowplot::plot_grid(fig_S3a, fig_S3b,
                                axis = "t",
                                nrow = 1)
 
-fig_S3cd <-  cowplot::plot_grid(fig_S3c,fig_S3d,
+fig_S4cd <-  cowplot::plot_grid(fig_S4c,fig_S4d,
                                labels = c('', 'D'), 
-                             #  rel_widths =  c(1.2 ,2),
                                label_size = 12, 
                                label_fontfamily="Helvetica",
                                axis = "t",
                                nrow = 1)
 
 
-fig_S3 <-  cowplot::plot_grid(fig_S3ab, fig_S3cd,  
+fig_S4 <-  cowplot::plot_grid(fig_S4ab, fig_S4cd,  
                              labels = c('A', 'C'  ), 
-                           #  rel_heights =  c(1,1.5,1 ),
                              label_size = 12, 
                              label_fontfamily="Helvetica",
                              axis = "lr",
                              nrow = 2)
 
-ggsave(fig_S3, filename = paste( "../figures/Supp_fig3_refmotif.png",sep = ""), units = "mm",height = 160, width = 170)
+ggsave(fig_S4, filename = paste( "../figures/Supp_fig4_refmotif.png",sep = ""), units = "mm",height = 160, width = 170)
 
 
 
 
 
 
-############# Figure  S4    ###############
+############# Figure  S5    ###############
 #           motif 134                     #
 ##########################################
 
 expansion_contractionS_134 <- table_s1_poly %>% 
+  dplyr::filter(!grepl("/",motif_geno)) %>% 
+  dplyr::mutate(motif_geno=motif_geno_fwd ) %>%
   dplyr::select(ref_STR ,expansion_score,contraction_score,motif_length,motif_geno) %>% 
   tidyr::gather(diff,score,-ref_STR,-motif_length,-motif_geno) %>% 
   dplyr::filter(motif_length %in% c(1,3,4)) %>% 
   dplyr::mutate(diff=ifelse(score==0,"substitution",diff)) %>% 
   dplyr::group_by(motif_geno,diff,motif_length) %>% 
   dplyr::count()  %>% 
-  dplyr::filter(!grepl("/",motif_geno)) %>% 
   dplyr::group_by(motif_geno) %>% 
   dplyr::mutate(count_motif=sum(n)) %>% 
   dplyr::mutate(frac=100*n/count_motif) %>% 
@@ -1257,7 +1173,7 @@ expansion_contractionS_134 <- table_s1_poly %>%
                 count_motif2=ifelse(id==1,count_motif,NA))
 
 
-fig_S4a <- ggplot(subset(expansion_contractionS_134,motif_length==1),aes(x=motif_geno,y=frac,fill=factor(diff))) + 
+fig_S5a <- ggplot(subset(expansion_contractionS_134,motif_length==1),aes(x=motif_geno,y=frac,fill=factor(diff))) + 
   geom_bar(stat='identity', position = position_stack(reverse = TRUE)) +
   theme_cust +
   facet_wrap(.~motif_length,scales = "free") +
@@ -1266,14 +1182,14 @@ fig_S4a <- ggplot(subset(expansion_contractionS_134,motif_length==1),aes(x=motif
   xlab("Motif")+
   ylab("Percent of\nALT alleles (%)")  +
   labs(fill="Mutations") +
-  geom_text(aes(label=count_motif2),y=109,size = 12*5/14) +
+  geom_text(aes(label=count_motif2),y=109,size = 10*5/14) +
   scale_y_continuous(breaks=c(0, 50, 100),limits = c(0,113) ) +
   theme(legend.position = "none",
         axis.text.x = element_blank(),
         axis.title.x = element_blank()) 
 
 
-fig_S4b <- ggplot(subset(expansion_contractionS_134,motif_length==3),aes(x=motif_geno,y=frac,fill=factor(diff))) + 
+fig_S5b <- ggplot(subset(expansion_contractionS_134,motif_length==3),aes(x=motif_geno,y=frac,fill=factor(diff))) + 
   geom_bar(stat='identity', position = position_stack(reverse = TRUE)) +
   theme_cust +
   facet_wrap(.~motif_length,scales = "free") +
@@ -1282,13 +1198,13 @@ fig_S4b <- ggplot(subset(expansion_contractionS_134,motif_length==3),aes(x=motif
   xlab("Motif")+
   ylab("Percent of\nALT alleles (%)")  +
   labs(fill="Mutations") +
-  geom_text(aes(label=count_motif2),y=109,size = 12*5/14) +
+  geom_text(aes(label=count_motif2),y=109,size = 10*5/14) +
   scale_y_continuous(breaks=c(0, 50, 100),limits = c(0,113) ) +
   theme(legend.position = "bottom")+
   guides(fill = guide_legend(nrow = 3)) 
 
 
-fig_S4c <- ggplot(subset(expansion_contractionS_134,motif_length==4),aes(x=motif_geno,y=frac,fill=factor(diff))) + 
+fig_S5c <- ggplot(subset(expansion_contractionS_134,motif_length==4),aes(x=motif_geno,y=frac,fill=factor(diff))) + 
   geom_bar(stat='identity', position = position_stack(reverse = TRUE)) +
   theme_cust +
   facet_wrap(.~motif_length,scales = "free") +
@@ -1297,12 +1213,13 @@ fig_S4c <- ggplot(subset(expansion_contractionS_134,motif_length==4),aes(x=motif
   xlab("Motif")+
   ylab("Percent of\nALT alleles (%)")  +
   labs(fill="Mutations") +
-  geom_text(aes(label=count_motif2),y=109,size = 12*5/14) +
+  geom_text(aes(label=count_motif2),y=109,size = 10*5/14) +
   scale_y_continuous(breaks=c(0, 50, 100),limits = c(0,113) ) +
-  theme(legend.position = "none" ) 
+  theme(legend.position = "none" ,
+        axis.text.y = ggplot2::element_text(size=10,  color = "black"),) 
 
 
-fig_S4ab <-  cowplot::plot_grid(fig_S4a, fig_S4b,
+fig_S5ab <-  cowplot::plot_grid(fig_S5a, fig_S5b,
                                 labels = c('', 'B'), 
                                 rel_heights  =  c(1,4),
                                 label_size = 12, 
@@ -1313,29 +1230,25 @@ fig_S4ab <-  cowplot::plot_grid(fig_S4a, fig_S4b,
 
 
 
-fig_S4 <-  cowplot::plot_grid(fig_S4ab, fig_S4c,
+fig_S5 <-  cowplot::plot_grid(fig_S5ab, fig_S5c,
                               labels = c('A', 'C'  ), 
-                              # rel_heights =  c(1,1.5,1.2),
                               label_size = 12, 
                               label_fontfamily="Helvetica",
                               axis = "tb",
-                              #   align = "v",
                               nrow = 1)
 
-ggsave(fig_S4, filename = paste( "../figures/Supp_fig4_frac_expansion.png",sep = ""), units = "mm",height = 200, width = 170)
+ggsave(fig_S5, filename = paste( "../figures/Supp_fig5_frac_expansion.png",sep = ""), units = "mm",height = 200, width = 170)
 
 
 
 
-############# Figure  S5    ###############
+############# Figure  S6    ###############
 #          constrained CDS                #
 ##########################################
 
-###### fig_S5a  ######
+###### fig_S6a  ######
 
 pstr_fea <- table_s1_poly %>% dplyr::select(ref_STR,gfeature)
-
-majorAF_ExpectedHe <- data.table::fread("../processed_data/majorAF_ExpectedHe.tsv")
 
 majorAF_ExpectedHe_fea <- majorAF_ExpectedHe %>% 
   dplyr::left_join(pstr_fea)%>% 
@@ -1347,7 +1260,7 @@ majorAF_ExpectedHe_fea <- majorAF_ExpectedHe %>%
 
 majorAF_ExpectedHe_fea$gfeatures<- factor(majorAF_ExpectedHe_fea$gfeature,levels = c("promoter","enhancer","5'UTR","CDS","intron","3'UTR","pseudogene","RNAs & TEs","intergenic"))
 
-fig_S5a <- ggplot(majorAF_ExpectedHe_fea,aes(x=gfeatures,y=hets))+
+fig_S6a <- ggplot(majorAF_ExpectedHe_fea,aes(x=gfeatures,y=hets))+
   geom_violin(width=1.1,size=0.2)+
   geom_boxplot(width=0.08, color="black",fill="grey", alpha=0.2,outlier.shape = NA,size=0.2)+ 
   geom_point(aes(x=gfeatures,y=mean_het2),size=0.5,color="red")+
@@ -1359,27 +1272,9 @@ fig_S5a <- ggplot(majorAF_ExpectedHe_fea,aes(x=gfeatures,y=hets))+
         axis.title.x= element_blank() ) +
   ggpubr::stat_compare_means(label = "p.signif", method = "wilcox.test",label.y = 0.9,  p.adjust.method = "bonferroni", 
                              ref.group = "CDS")
-
-fig_S5a_stats <- ggpubr::compare_means(hets~gfeatures,
-                      majorAF_ExpectedHe_fea, 
-                      p.adjust.method = "bonferroni", 
-                      method = "wilcox.test", 
-                      ref.group = "CDS" ) %>% 
-   dplyr::mutate(figure="FIG.S5A") %>% 
-  dplyr::select(-p.format,-p.signif) %>% 
-  dplyr::mutate(group_factor=NA,
-                group_factor_catogory=NA,
-                method="two-sided Wilcoxon test",
-                padjustment="BF") %>% 
-  dplyr::select(figure,method,group_factor,group_factor_catogory,'.y.', group1,group2,p,padjustment,p.adj)
-
-
-
  
-
-
-
-###### fig_S5b  ######
+ 
+###### fig_S6b  ######
 
 repeat_var <- table_s1_poly %>% 
   dplyr::select(ref_STR,Chr,start,BPDIFFS,motif_length,gfeature) %>% 
@@ -1401,7 +1296,7 @@ repeat_var$gfeatures<- factor(repeat_var$gfeature,levels = c("promoter","enhance
 
 #plot
 
-fig_S5b <- ggplot(repeat_var,aes(x=gfeatures,y=mean_repeatN_var))+
+fig_S6b <- ggplot(repeat_var,aes(x=gfeatures,y=mean_repeatN_var))+
   geom_violin(width=1.1,size=0.2)+
   geom_boxplot(width=0.08, color="black",fill="grey", alpha=0.2,outlier.shape = NA,size=0.2) + 
   geom_point(aes(x=gfeatures,y=gmean_repeatN_var),size=0.5,color="red") +
@@ -1417,24 +1312,10 @@ fig_S5b <- ggplot(repeat_var,aes(x=gfeatures,y=mean_repeatN_var))+
                              ref.group = "CDS")+
   ylim(0,15)
 
-
-fig_S5b_stats <-ggpubr::compare_means(mean_repeatN_var~gfeatures,
-                      repeat_var, 
-                      p.adjust.method = "bonferroni", 
-                      method = "wilcox.test", 
-                      ref.group = "CDS" ) %>% 
-  dplyr::mutate(figure="FIG.S5B") %>% 
-  dplyr::select(-p.format,-p.signif) %>% 
-  dplyr::mutate(group_factor=NA,
-                group_factor_catogory=NA,
-                method="two-sided Wilcoxon test",
-                padjustment="BF") %>% 
-  dplyr::select(figure,method,group_factor,group_factor_catogory,'.y.', group1,group2,p,padjustment,p.adj)
+ 
 
 
-
-
-###### fig_S5c  ######
+###### fig_S6c  ######
 
 
 poly_gc <- table_s1_poly  %>% 
@@ -1452,14 +1333,14 @@ poly_gc$gfeatures<- factor(poly_gc$gfeature,levels = c("promoter","enhancer","5'
 
 #plot
 
-fig_S5c <- ggplot(poly_gc,aes(x=gfeatures,y=contentGC))+
+fig_S6c <- ggplot(poly_gc,aes(x=gfeatures,y=contentGC))+
   geom_violin(width=1.1,size=0.2)+
   geom_boxplot(width=0.08, color="black",fill="grey", alpha=0.2,outlier.shape = NA,size=0.2) + 
   geom_point(aes(x=gfeatures,y=gmean_gc),size=0.5,color="red") +
   theme_cust +
   xlab("Genomic features")+
   ylab("GC content (%)")+
-  theme(axis.text.x =  element_text(size=12,   color = "black", angle = 45, hjust = 1)) +
+  theme(axis.text.x =  element_text(size=10,   color = "black", angle = 45, hjust = 1)) +
   ggpubr::stat_compare_means(label = "p.signif", method = "wilcox.test",label.y = 101,
                              p.adjust.method = "bonferroni", 
                              symnum.args = list(cutpoints = c(0, 0.00001,0.0001,0.05,  1), 
@@ -1467,47 +1348,31 @@ fig_S5c <- ggplot(poly_gc,aes(x=gfeatures,y=contentGC))+
                              ref.group = "CDS")+
   ylim(0,105)
 
-
-
-fig_S5c_stats <-ggpubr::compare_means(contentGC~gfeatures,
-                      poly_gc,  p.adjust.method = "bonferroni", 
-                      method = "wilcox.test", 
-                      ref.group = "CDS" ) %>% 
-  dplyr::mutate(figure="FIG.S5C") %>% 
-  dplyr::select(-p.format,-p.signif) %>% 
-  dplyr::mutate(group_factor=NA,
-                group_factor_catogory=NA,
-                method="two-sided Wilcoxon test",
-                padjustment="BF") %>% 
-  dplyr::select(figure,method,group_factor,group_factor_catogory,'.y.', group1,group2,p,padjustment,p.adj)
-
-
-
-
-
-figS5 <-  cowplot::plot_grid(fig_S5a, fig_S5b,fig_S5c,  
+ 
+fig_S6 <-  cowplot::plot_grid(fig_S6a, fig_S6b,fig_S6c,  
                              labels = c('A' ,'B' ,'C'), 
                              rel_heights =  c(1,1,1.5 ),
                              label_size = 12, 
                              label_fontfamily="Helvetica",
-                             #  axis = "lr",
                              align = "v",
                              nrow = 3)
 
-ggsave(figS5, filename = paste( "../figures/Supp_fig5_constrainedCDS.png",sep = ""), units = "mm",height = 170, width = 170)
+ggsave(fig_S6, filename = paste( "../figures/Supp_fig6_constrainedCDS.png",sep = ""), units = "mm",height = 170, width = 170)
 
 
 
-############# Figure  S6    ###############
+############# Figure  S7    ###############
 #          MA_pSTR motif enrichment       #
 ##########################################
 
-data_fig_S6 <- data.table::fread("../processed_data/MA174_pSTRs.tsv")
-write.table(data_fig_S6, paste("../processed_data/table_s3_MA_pSTRs",sep=""), sep = "\t", row.names = F,  quote = FALSE)
-###### fig_S6a  ######
+ 
+data_fig_S7 <- data.table::fread("../processed_data/table_s3_MA_pSTRs.txt")   
+
+###### fig_S7a  ######
 
 
-MAstr_motif_count  <- data_fig_S6 %>% 
+MAstr_motif_count  <- data_fig_S7 %>% 
+  dplyr::mutate(motif_geno=motif_geno_fwd ) %>%
   dplyr::group_by(motif_geno,motif_length) %>% 
   dplyr::count() %>% 
   dplyr::ungroup() %>% 
@@ -1517,7 +1382,7 @@ MAstr_motif_count  <- data_fig_S6 %>%
 MAstr_motif_count$motif <- factor(MAstr_motif_count$motif_geno, levels = MAstr_motif_count$motif_geno )
 
 
-fig_S6a <- ggplot(MAstr_motif_count,aes(x=motif,y=n ,fill=factor(motif_length))) +
+fig_S7a <- ggplot(MAstr_motif_count,aes(x=motif,y=n ,fill=factor(motif_length))) +
   geom_bar(stat='identity') +
   scale_fill_manual(values=period_size_color) +
   theme_cust +
@@ -1527,9 +1392,9 @@ fig_S6a <- ggplot(MAstr_motif_count,aes(x=motif,y=n ,fill=factor(motif_length)))
        x="STR motif") +
   scale_y_continuous(breaks=c(0, 300,600) )
 
-###### fig_S6b ######
+###### fig_S7b ######
 
-MASTR_region <- data_fig_S6  %>% 
+MASTR_region <- data_fig_S7  %>% 
   dplyr::group_by(gfeature,motif_length) %>% 
   dplyr::add_count(name = "STRbyPS_REGION")%>% 
   dplyr::group_by(gfeature) %>% 
@@ -1543,7 +1408,7 @@ MASTR_region$gfeatures<- factor(MASTR_region$gfeature,levels = c("promoter","enh
 
 #plot
 
-fig_S6b <- ggplot(MASTR_region,aes(x=gfeatures,y=ps2region,fill=factor(motif_length))) + 
+fig_S7b <- ggplot(MASTR_region,aes(x=gfeatures,y=ps2region,fill=factor(motif_length))) + 
   geom_bar(stat='identity', position = position_stack(reverse = TRUE)) +
   coord_flip() +
   theme_cust +
@@ -1551,12 +1416,12 @@ fig_S6b <- ggplot(MASTR_region,aes(x=gfeatures,y=ps2region,fill=factor(motif_len
   ylab("Percent of pSTRs (%)")  +
   labs(fill="Motif\nlength")+
   scale_fill_manual(values=period_size_color) +
-  geom_text(aes(label=STRby_REGIONs),y=115,size = 18/5)+
+  geom_text(aes(label=STRby_REGIONs),y=115,size = 10*5/14)+
   scale_y_continuous(breaks=c(0, 50, 100),limits = c(0,125) ) +
   theme(legend.position = "left")+ 
   guides(fill = guide_legend(nrow = 6)) 
 
-###### fig_S6c ######
+###### fig_S7c ######
 
 enrich_MASTR_region_stats <- MASTR_region %>% 
   dplyr::ungroup() %>% 
@@ -1579,28 +1444,27 @@ enrich_MASTR_region_stats <- MASTR_region %>%
 
 enrich_MASTR_region<-enrich_MASTR_region_stats %>% 
   dplyr::filter(fisherp_adj<0.05) %>% 
-  dplyr::mutate(logp=-log10(fisherp_adj))  #%>% 
-# dplyr::mutate(logp=ifelse(logp=="Inf",400,logp))  
+  dplyr::mutate(logp=-log10(fisherp_adj)) 
 
 enrich_MASTR_region$gfeatures<- factor(enrich_MASTR_region$gfeature,levels = c("promoter","enhancer","5'UTR","CDS","intron","3'UTR","pseudogene","RNAs & TEs","intergenic"))
 
 
-fig_S6c <- ggplot(enrich_MASTR_region,
+fig_S7c <- ggplot(enrich_MASTR_region,
                   aes(y=gfeatures,x=logp,color=factor(motif_length)))+
   ggbeeswarm::geom_beeswarm(cex=2,groupOnX = F)+
   theme_cust+
   theme( legend.position = "none")+
   scale_color_manual(values=period_size_color) +
-  #  scale_x_continuous(limits = c(0,30) )   +
   scale_x_continuous(limits = c(0,100) )   +
   ylab("Genomic features")+
   xlab(expression(-log[10](italic(p)))) 
 
-###### fig_S6d ######
+###### fig_S7d ######
 
 
-enrichMotif_MASTR_region_stats <-  data_fig_S6 %>% 
-  dplyr::group_by(gfeature, motif_geno) %>% 
+enrichMotif_MASTR_region_stats <-  data_fig_S7 %>% 
+  dplyr::mutate(motif_geno=motif_geno_fwd ) %>% 
+  dplyr::group_by(gfeature, motif_geno ) %>% 
   dplyr::count(name = "sig_n") %>% 
   dplyr::ungroup() %>% 
   dplyr::group_by(gfeature) %>% 
@@ -1610,7 +1474,7 @@ enrichMotif_MASTR_region_stats <-  data_fig_S6 %>%
   dplyr::mutate(n=sum(sig_n)) %>% 
   dplyr::ungroup() %>% 
   dplyr::mutate(total=sum(sig_n)) %>%
-  dplyr::group_by( gfeature,motif_geno)  %>% 
+  dplyr::group_by( gfeature,motif_geno )  %>% 
   dplyr::do(data.frame(x=fisher_enrich_func(.)))  %>%
   dplyr::rename(fisherp = x) %>%
   dplyr::ungroup() %>% 
@@ -1627,17 +1491,18 @@ enrichMotif_MASTR_region <- enrichMotif_MASTR_region_stats %>%
   dplyr::mutate(logp=-log10(fisherp_adj)) %>% 
   dplyr::mutate(motif_length=nchar(motif_geno))%>% 
   dplyr::arrange(  motif_length )  %>% 
-  dplyr::top_n(10, logp) 
+  dplyr::group_by(gfeature) %>% 
+  dplyr::top_n(3, logp) 
 
 
 enrichMotif_MASTR_region$gfeatures<- factor(enrichMotif_MASTR_region$gfeature,levels = c("promoter","enhancer","5'UTR","CDS","intron","3'UTR","pseudogene","RNAs & TEs","intergenic"))
 
 
 
-fig_S6d <- ggplot(enrichMotif_MASTR_region,
+fig_S7d <- ggplot(enrichMotif_MASTR_region,
                   aes(y=gfeatures,x=logp,color=factor(motif_length)))+
   ggbeeswarm::geom_beeswarm(cex=2,groupOnX = F) +
-  ggrepel::geom_text_repel(aes(label = motif_geno),  nudge_x = 2,segment.linetype=6,
+  ggrepel::geom_text_repel(aes(label = motif_geno),  nudge_x = 2,segment.linetype=6, size=10*5/14,
                            max.overlaps=Inf,
                            box.padding = 0.5) +
   theme_cust+
@@ -1649,9 +1514,9 @@ fig_S6d <- ggplot(enrichMotif_MASTR_region,
 
 
 
-###### fig S6 #####
+###### fig S7 #####
 
-fig_S6ab <-  cowplot::plot_grid(fig_S6a, fig_S6b,
+fig_S7ab <-  cowplot::plot_grid(fig_S7a, fig_S7b,
                                 labels = c('', 'B'), 
                                 rel_widths =  c(1.3,2),
                                 label_size = 12, 
@@ -1659,50 +1524,47 @@ fig_S6ab <-  cowplot::plot_grid(fig_S6a, fig_S6b,
                                 axis = "t",
                                 nrow = 1)
 
-fig_S6cd <-  cowplot::plot_grid(fig_S6c,fig_S6d,
+fig_S7cd <-  cowplot::plot_grid(fig_S7c,fig_S7d,
                                 labels = c('', 'D'), 
-                                #  rel_widths =  c(1.2 ,2),
                                 label_size = 12, 
                                 label_fontfamily="Helvetica",
                                 axis = "t",
                                 nrow = 1)
 
 
-fig_S6 <-  cowplot::plot_grid(fig_S6ab, fig_S6cd,  
+fig_S7 <-  cowplot::plot_grid(fig_S7ab, fig_S7cd,  
                               labels = c('A', 'C'  ), 
-                              #  rel_heights =  c(1,1.5,1 ),
                               label_size = 12, 
                               label_fontfamily="Helvetica",
                               axis = "lr",
                               nrow = 2)
 
-ggsave(fig_S6, filename = paste( "../figures/Supp_fig6_MAmotif.png",sep = ""), units = "mm",height = 160, width = 170)
+ggsave(fig_S7, filename = paste( "../figures/Supp_fig7_MAmotif.png",sep = ""), units = "mm",height = 160, width = 170)
 
 
 
 
 
  
-############# Figure  S7    ###############
+############# Figure  S8    ###############
 #          MA ps u                       #
 ##########################################
 
-###### fig_S7  ######
+###### fig_S8  ######
  
-data_fig_S7 <- data_fig_4 %>% 
+data_fig_S8 <- data_fig_4 %>% 
   dplyr::filter(motif_length!="1-6" &
                   motif_geno=="All" &
                   gfeature=="All" &
                   OMA=="O1MA") 
 
 
-data_fig_S7_stats <-ggpubr::compare_means( mutation_rate ~ strain, 
-                       data= data_fig_S7 ,
+data_fig_S8_stats <-ggpubr::compare_means( mutation_rate ~ strain, 
+                       data= data_fig_S8 ,
                        group.by = c( "mutation" ,"motif_length"),  
                        p.adjust.method = "bonferroni", 
                        label = "p.signif", 
                        method = "wilcox.test" ) %>% 
- # dplyr::filter(p.adj<0.05)%>% 
   dplyr::mutate(figure="FIG.S7") %>% 
   dplyr::select(-p.format,-p.signif) %>% 
   dplyr::mutate(group_factor="mutation, motif_length",
@@ -1715,7 +1577,7 @@ data_fig_S7_stats <-ggpubr::compare_means( mutation_rate ~ strain,
 
 
 
-fig_S7 <- ggpubr::ggboxplot(data_fig_S7, x="mutation",y="mutation_rate",outlier.shape = NA,
+fig_S8 <- ggpubr::ggboxplot(data_fig_S8, x="mutation",y="mutation_rate",outlier.shape = NA,
                             color="strain"  ) +
   geom_point( position = position_jitterdodge(jitter.width = 0.2) ,aes(color=strain), size=0.5, alpha=0.8)+
   theme_cust +
@@ -1725,37 +1587,76 @@ fig_S7 <- ggpubr::ggboxplot(data_fig_S7, x="mutation",y="mutation_rate",outlier.
   labs(x="Mutations",y="ANC-O1MA mutation rate",color="Strain" ) + 
   ggpubr::stat_compare_means( 
     aes(group = strain),
-    label = "p.signif",  # label.y = 4.8e-05,
-    #  hide.ns=TRUE,
-    size = 4,
+    label = "p.signif",  
+    size = 3,
     symnum.args = list(cutpoints = c(0, 0.0001, 0.001, 0.01, 1), 
                        symbols = c("****","**","*",  "ns")),
     method = "wilcox.test") + 
   scale_y_continuous(labels = function(x) format(x, scientific = TRUE),expand = c(0.1, 0 ) )   
 
-ggsave(fig_S7, filename = paste( "../figures/Supp_fig7_MA_ps_u.png",sep = ""), units = "mm",height = 200, width = 170)
-
-### table S2 ####
+ggsave(fig_S8, filename = paste( "../figures/Supp_fig8_MA_ps_u.png",sep = ""), units = "mm",height = 200, width = 170)
 
 
-wilcox_stats <- dplyr::bind_rows(fig_2c_stats,fig_2d_stats) %>% 
-  dplyr::mutate(group_factor_catogory=as.character(group_factor_catogory)) %>% 
-  dplyr::bind_rows( data_fig_4b_stats,data_fig_4c_stats,data_fig_4e_stats,data_fig_4f_stats,data_fig_4b_stats2,
-                                 fig_S5a_stats,fig_S5b_stats,fig_S5c_stats,data_fig_S7_stats)
-
-
-fisher_stats <- dplyr::bind_rows(enrich_PolySTR_region_stats,enrichMotif_polySTR_region_stats,
-                                 enrich_refSTR_region_stats,enrichMotif_refSTR_region_stats,
-                                 enrich_MASTR_region_stats,enrichMotif_MASTR_region_stats) %>% 
-  dplyr::mutate('.y.'="count",
-                group1=NA,group2=NA,
-                p=fisherp,p.adj=fisherp_adj) %>% 
-  dplyr::select(colnames(wilcox_stats))
-
- table_S2 <- dplyr::bind_rows(wilcox_stats,fisher_stats) %>% 
-   dplyr::arrange(figure) %>% 
-   dplyr::mutate(significant=ifelse(p.adj<0.05,"Yes","No"))
-
- write.table(table_S2, paste("../processed_data/table_s2_statistics",sep=""), sep = "\t", row.names = F,  quote = FALSE)
+ 
+ 
+ ############# Figure  S9    ###############
+ #          pSTR pxg                      #
+ ##########################################
+ 
+ data_fig_S9 <- data.table::fread("../processed_data/Organismal_Lrt_STRs_pxg.tsv")
+ 
+ 
+ 
+ traits_name_df <- data.frame(organismal_trait=c("broods","abamectin_norm.n","arsenic_pc1","Albendazole_q90.TOF",
+                                                 "bleo_medianEXT","dauer_frac","amsacrine_f.L1","etoposide_median.TOF",
+                                                 "propionicL1survival","telomere_resids","zinc_norm_EXT"),
+                              trait_name=c("Lifetime fecundity","Response to abamectin","Response to arsenic","Response to albendazole",
+                                           "Response to bleomycin","Dauer formation","Response to amsacrine","Response to etoposide",
+                                           "Response to propionate","Telomere length","Response to zinc") )
+ 
+ 
+ 
+ data_fig_S9_N2 <- data_fig_S9 %>% 
+   dplyr::left_join(traits_name_df) %>% 
+   dplyr::group_by(organismal_trait) %>% 
+   dplyr::filter(adjusted_p==min(adjusted_p)) %>% 
+   dplyr::ungroup() %>% 
+   dplyr::group_by(strain) %>% 
+   dplyr::add_count() %>% 
+   dplyr::filter( strain=="N2") %>% 
+   dplyr::select(organismal_trait, pSTR,ref_strain=strain,ref_str_length=STR_length)
+ 
+ data_fig_S9_top <- data_fig_S9 %>% 
+   dplyr::left_join(traits_name_df) %>% 
+   dplyr::group_by(organismal_trait) %>% 
+   dplyr::filter(adjusted_p==min(adjusted_p)) %>% 
+   dplyr::ungroup() %>% 
+   dplyr::left_join(data_fig_S9_N2) %>% 
+   dplyr::mutate(allele=ifelse(is.na(ref_strain) & STR_length==18, "REF",
+                               ifelse(is.na(ref_strain) & STR_length==15, "ALT", 
+                                      ifelse(ref_str_length==STR_length,"REF","ALT"))) ,
+                 trait_name=paste0(trait_name,"\n",pSTR))
+ 
+ 
+ 
+ data_fig_S9_top$trait_name2<- factor(data_fig_S9_top$trait_name,levels = c("Lifetime fecundity\nSTR_25031","Dauer formation\nSTR_30772",
+                                                                            "Telomere length\nSTR_10678","Response to abamectin\nSTR_25415",
+                                                                            "Response to albendazole\nSTR_6418","Response to arsenic\nSTR_8043",
+                                                                            "Response to bleomycin\nSTR_31790","Response to amsacrine\nSTR_1102",
+                                                                            "Response to propionate\nSTR_29860"))
+ 
+ 
+ fig_S9 <- ggplot(data_fig_S9_top,aes(x=as.factor(STR_length),y=trait_value ))+
+   geom_jitter(shape=21,position=position_jitter(0.2),aes(fill=as.factor(allele)) ) +
+   geom_boxplot( outlier.shape = NA,alpha=0.5) +
+   theme_cust+
+   ggplot2::scale_fill_manual(values = c("REF"="orange","ALT"="blue") )+
+   xlab("Length of STR") + ylab("Trait values") +  
+   facet_wrap(.~trait_name2 ,scales = "free",nrow=3) +
+   theme( legend.position = "none"  )
+ 
+ 
+ ggsave(fig_S9, filename = paste( "../figures/Supp_fig9_pxg.png",sep = ""), units = "mm",height =  180, width = 170)
   
+ 
 #######
