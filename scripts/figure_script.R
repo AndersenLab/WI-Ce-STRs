@@ -243,7 +243,7 @@ fig_1 <-  cowplot::plot_grid(fig_1a, fig_1bc,fig_1de,
                             axis = "lr",
                             nrow = 3)
 
-ggsave(fig_1, filename = paste( "../figures/Fig_1.png",sep = ""), units = "mm",height = 160, width = 170)
+ggsave(fig_1, filename = paste( "../figures/Fig_1.jpg",sep = ""), units = "mm",height = 160, width = 170)
 
  
 ############# Figure  2    ###############
@@ -408,7 +408,7 @@ fig2 <-  cowplot::plot_grid(fig2ab, fig2cd,fig_2e,
                             #   align = "v",
                             nrow = 3)
 
-ggsave(fig2, filename = paste( "../figures/Fig_2.png",sep = ""), units = "mm",height = 180, width = 170)
+ggsave(fig2, filename = paste( "../figures/Fig_2.jpg",sep = ""), units = "mm",height = 180, width = 170)
 
 
  
@@ -558,7 +558,7 @@ fig3 <-  cowplot::plot_grid(fig3abc, fig3de, fig_3f,
                             align = "v",
                             nrow = 3)
 
-ggsave(fig3, filename = paste( "../figures/Fig_3.png",sep = ""), units = "mm",height = 180, width = 170)
+ggsave(fig3, filename = paste( "../figures/Fig_3.jpg",sep = ""), units = "mm",height = 180, width = 170)
 
  
 
@@ -788,7 +788,7 @@ fig_4 <- cowplot::plot_grid(  fig_4ab, fig_4c,  fig_4de,fig_4f,
                               nrow =4)
 
 
-ggsave(fig_4, filename = paste( "../figures/Fig_4.png",sep = ""), units = "mm",height =  180, width = 170)
+ggsave(fig_4, filename = paste( "../figures/Fig_4.jpg",sep = ""), units = "mm",height =  180, width = 170)
 
 
 ############# Figure  5    ###############
@@ -858,7 +858,7 @@ fig_5 <-  cowplot::plot_grid(STRmanha_plt_list$broods+ theme(axis.title.x = elem
                              ncol = 2,
                              nrow = 6)
 
-ggsave(fig_5, filename = paste( "../figures/Fig_5.png",sep = ""), units = "mm",height = 200, width = 170)
+ggsave(fig_5, filename = paste( "../figures/Fig_5.jpg",sep = ""), units = "mm",height = 200, width = 170)
 
 
 ##############################################
@@ -906,7 +906,7 @@ fig_S1 <-  cowplot::plot_grid(fig_S1a, fig_S1b,
                               axis = "lr",
                               nrow = 2)
 
-ggsave(fig_S1, filename = paste( "../figures/Supp_fig1_ref_dist.png",sep = ""), units = "mm",height = 180, width = 170)
+ggsave(fig_S1, filename = paste( "../figures/Supp_fig1_ref_dist.jpg",sep = ""), units = "mm",height = 180, width = 170)
 
 
 
@@ -953,7 +953,7 @@ fig_S2 <-ggplot(perfect_plt_data,aes(x=perfect_str2,y=Counts))+
   scale_y_continuous(breaks=seq(0, 20000,5000)  )
 
 
-ggsave(fig_S2, filename = paste( "../figures/Supp_fig2_perfectSTR.png",sep = ""), units = "mm",height = 100, width = 170)
+ggsave(fig_S2, filename = paste( "../figures/Supp_fig2_perfectSTR.jpg",sep = ""), units = "mm",height = 100, width = 170)
 
 
 ############# Figure  S3    ###############
@@ -970,7 +970,7 @@ fig_S3 <- ggplot() +
   theme(legend.position = "none" ,
         plot.title =   ggplot2::element_text(size=10,  color = "black"))
 
-ggsave(fig_S3, filename = paste( "../figures/Supp_fig3_polystr_dist_size.png",sep = ""), units = "mm",height = 160, width = 170)
+ggsave(fig_S3, filename = paste( "../figures/Supp_fig3_polystr_dist_size.jpg",sep = ""), units = "mm",height = 160, width = 170)
 
 
 
@@ -1149,7 +1149,7 @@ fig_S4 <-  cowplot::plot_grid(fig_S4ab, fig_S4cd,
                              axis = "lr",
                              nrow = 2)
 
-ggsave(fig_S4, filename = paste( "../figures/Supp_fig4_refmotif.png",sep = ""), units = "mm",height = 160, width = 170)
+ggsave(fig_S4, filename = paste( "../figures/Supp_fig4_refmotif.jpg",sep = ""), units = "mm",height = 160, width = 170)
 
 
 
@@ -1242,7 +1242,7 @@ fig_S5 <-  cowplot::plot_grid(fig_S5ab, fig_S5c,
                               axis = "tb",
                               nrow = 1)
 
-ggsave(fig_S5, filename = paste( "../figures/Supp_fig5_frac_expansion.png",sep = ""), units = "mm",height = 200, width = 170)
+ggsave(fig_S5, filename = paste( "../figures/Supp_fig5_frac_expansion.jpg",sep = ""), units = "mm",height = 200, width = 170)
 
 
 
@@ -1362,7 +1362,7 @@ fig_S6 <-  cowplot::plot_grid(fig_S6a, fig_S6b,fig_S6c,
                              align = "v",
                              nrow = 3)
 
-ggsave(fig_S6, filename = paste( "../figures/Supp_fig6_constrainedCDS.png",sep = ""), units = "mm",height = 170, width = 170)
+ggsave(fig_S6, filename = paste( "../figures/Supp_fig6_constrainedCDS.jpg",sep = ""), units = "mm",height = 170, width = 170)
 
 
 
@@ -1544,7 +1544,7 @@ fig_S7 <-  cowplot::plot_grid(fig_S7ab, fig_S7cd,
                               axis = "lr",
                               nrow = 2)
 
-ggsave(fig_S7, filename = paste( "../figures/Supp_fig7_MAmotif.png",sep = ""), units = "mm",height = 160, width = 170)
+ggsave(fig_S7, filename = paste( "../figures/Supp_fig7_MAmotif.jpg",sep = ""), units = "mm",height = 160, width = 170)
 
 
 
@@ -1599,7 +1599,7 @@ fig_S8 <- ggpubr::ggboxplot(data_fig_S8, x="mutation",y="mutation_rate",outlier.
     method = "wilcox.test") + 
   scale_y_continuous(labels = function(x) format(x, scientific = TRUE),expand = c(0.1, 0 ) )   
 
-ggsave(fig_S8, filename = paste( "../figures/Supp_fig8_MA_ps_u.png",sep = ""), units = "mm",height = 200, width = 170)
+ggsave(fig_S8, filename = paste( "../figures/Supp_fig8_MA_ps_u.jpg",sep = ""), units = "mm",height = 200, width = 170)
 
 
  
@@ -1660,7 +1660,7 @@ ggsave(fig_S8, filename = paste( "../figures/Supp_fig8_MA_ps_u.png",sep = ""), u
    theme( legend.position = "none"  )
  
  
- ggsave(fig_S9, filename = paste( "../figures/Supp_fig9_pxg.png",sep = ""), units = "mm",height =  180, width = 170)
+ ggsave(fig_S9, filename = paste( "../figures/Supp_fig9_pxg.jpg",sep = ""), units = "mm",height =  180, width = 170)
   
  
 #######
