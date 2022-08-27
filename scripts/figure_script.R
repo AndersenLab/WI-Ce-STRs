@@ -433,8 +433,10 @@ fig_3a <- ggplot(num_allele,aes(n))   +
   theme( axis.title.y = ggplot2::element_text(size=10,  color = "black", hjust = 0.2 )) 
  
 ###### fig_3b ######
+ 
+majorAF_ExpectedHe <- data.table::fread("../processed_data/table_s3_Expected_Heterozygosity.txt") %>% 
+  dplyr::rename(af=allele_frequency,hets=He)
 
-majorAF_ExpectedHe <- data.table::fread("../processed_data/Expected_Heterozygosity_swept_div_all.csv")
 
 majorAF_data <- majorAF_ExpectedHe %>% 
   dplyr::group_by(ref_STR,n_st) %>% 
@@ -457,8 +459,9 @@ fig_3b <- ggplot()   +
 
 ###### fig_3c ######
 
-strain_ALT_frac <- data.table::fread("../processed_data/strain_ALT_frac.tsv")
+strain_ALT_frac <- data.table::fread("../processed_data/table_s4_strain_ALT_frac.txt")
 
+ 
 fig_3c <- ggplot()+
   geom_point(data=strain_ALT_frac,aes(x=alt_frac,y=hets_frac,color=sweep),size=0.5,alpha=0.8)+
   theme_cust+
@@ -473,7 +476,9 @@ fig_3c <- ggplot()+
 
 ###### fig_3d ######
 
-pca_pSTR_SNV <- data.table::fread("../processed_data/pca_pSTR_SNV.tsv")
+pca_pSTR_SNV <- data.table::fread("../processed_data/table_s5_pca_pSTR_SNV.txt")
+
+ 
 
 pca_pSTR <- pca_pSTR_SNV %>% 
   dplyr::filter(data=="pSTRs")
@@ -563,8 +568,8 @@ ggsave(fig3, filename = paste( "../figures/Fig_3.png",sep = ""), units = "mm",he
 ##########################################
 
 
-data_fig_4 <- data.table::fread("../processed_data/MA174_pSTRs_mutationRate.tsv")
-
+data_fig_4 <- data.table::fread("../processed_data/table_s7_MA174_pSTRs_mutationRate.txt")
+ 
 ###### fig_4a ######
 
 data_fig_4a <- data_fig_4 %>% 
@@ -790,7 +795,7 @@ ggsave(fig_4, filename = paste( "../figures/Fig_4.png",sep = ""), units = "mm",h
 #          STR and phenotypes           #
 ##########################################
 
-data_fig_5 <- data.table::fread("../processed_data/table_s4_pSTRonPhenotypes.txt")
+data_fig_5 <- data.table::fread("../processed_data/table_s8_pSTRonPhenotypes.txt")
 
 
 traits_name_df <- data.frame(organismal_trait=c("broods","abamectin_norm.n","arsenic_pc1","Albendazole_q90.TOF",
@@ -1366,7 +1371,7 @@ ggsave(fig_S6, filename = paste( "../figures/Supp_fig6_constrainedCDS.png",sep =
 ##########################################
 
  
-data_fig_S7 <- data.table::fread("../processed_data/table_s3_MA_pSTRs.txt")   
+data_fig_S7 <- data.table::fread("../processed_data/table_s6_MA_pSTRs.txt")   
 
 ###### fig_S7a  ######
 
@@ -1603,8 +1608,7 @@ ggsave(fig_S8, filename = paste( "../figures/Supp_fig8_MA_ps_u.png",sep = ""), u
  #          pSTR pxg                      #
  ##########################################
  
- data_fig_S9 <- data.table::fread("../processed_data/Organismal_Lrt_STRs_pxg.tsv")
- 
+ data_fig_S9 <- data.table::fread("../processed_data/table_s9_Organismal_Lrt_STRs_pxg.txt")
  
  
  traits_name_df <- data.frame(organismal_trait=c("broods","abamectin_norm.n","arsenic_pc1","Albendazole_q90.TOF",
