@@ -290,6 +290,8 @@ fig_2b <- ggplot(expansion_contractionS ,aes(score,fill=diff)) +
 
 ###### fig_2c ###### 
 
+motif_length.labs <- c("Mono-STR", "Di-STR","Tri-STR","Tetra-STR","Penta-STR","Hexa-STR")
+names(motif_length.labs) <- c("1", "2", "3", "4", "5", "6")
  
 fig_2c <- ggplot(expansion_contractionS,aes(x=diff,y=lg_sc ,color=diff))+
   geom_violin(width=1.1,size=0.2)+
@@ -302,7 +304,8 @@ fig_2c <- ggplot(expansion_contractionS,aes(x=diff,y=lg_sc ,color=diff))+
     symnum.args = list(cutpoints = c(0, 0.00001, 0.0001, 0.001,  1), 
                        symbols = c("****","***","**",  "ns")) ,
     label.y = 0.2) +
-  facet_grid(.~motif_length,scales="free") +
+  facet_grid(.~motif_length,scales="free", 
+             labeller = labeller(motif_length = motif_length.labs)) +
   scale_color_manual(values=c("#E7B800", "#00AFBB")) +
   theme(axis.text.x = element_blank(),axis.title.x = element_blank(),
         legend.position = "none")  + 
@@ -363,8 +366,9 @@ expansion_contractionS_di <- table_s1_poly %>%
   dplyr::group_by(motif_geno) %>% 
   dplyr::mutate(count_motif=sum(n)) %>% 
   dplyr::mutate(frac=100*n/count_motif) %>% 
-  dplyr::mutate(count_motif2=ifelse(diff=="substitution",count_motif,NA)) %>% 
-  dplyr::mutate(diff=sub("(.*)(_score)","\\1",diff))
+  dplyr::mutate(count_motif2=ifelse(diff=="substitution",count_motif,NA),
+                heading=ifelse(count_motif2==618,"The total number of di-STRs with each motif", NA)) %>% 
+  dplyr::mutate(diff=sub("(.*)(_score)","\\1",diff)) 
 
 
 fig_2e <- ggplot(expansion_contractionS_di,aes(x=motif_geno,y=frac,fill=factor(diff))) + 
@@ -375,7 +379,8 @@ fig_2e <- ggplot(expansion_contractionS_di,aes(x=motif_geno,y=frac,fill=factor(d
   ylab("Percent of\nALT alleles (%)")  +
   labs(fill="Mutations") +
   geom_text(aes(label=count_motif2),y=105,size = 10*5/14) +
-  scale_y_continuous(breaks=c(0, 50, 100),limits = c(0,110) ) 
+  scale_y_continuous(breaks=c(0, 50, 100),limits = c(0,120) )+
+  geom_text(  aes(label=heading) ,y=117,size = 10*5/14  ) 
 
 
 
@@ -383,11 +388,9 @@ fig_2e <- ggplot(expansion_contractionS_di,aes(x=motif_geno,y=frac,fill=factor(d
 
 fig2ab <-  cowplot::plot_grid(fig_2a, fig_2b,
                               labels = c('', 'B'), 
-                              # rel_widths =  c(1,2),
                               label_size = 12, 
                               label_fontfamily="Helvetica",
                               axis = "tb",
-                              # align = "h",
                               nrow = 1)
 
 fig2cd <-  cowplot::plot_grid(fig_2c,fig_2d,
@@ -405,10 +408,11 @@ fig2 <-  cowplot::plot_grid(fig2ab, fig2cd,fig_2e,
                             label_size = 12, 
                             label_fontfamily="Helvetica",
                             axis = "lr",
-                            #   align = "v",
                             nrow = 3)
 
 ggsave(fig2, filename = paste( "../figures/Fig_2.jpg",sep = ""), units = "mm",height = 180, width = 170)
+
+ggsave(fig2, filename = paste( "../figures/Fig_2.pdf",sep = ""), units = "mm",height = 180, width = 170)
 
 
  
@@ -436,7 +440,6 @@ fig_3a <- ggplot(num_allele,aes(n))   +
  
 majorAF_ExpectedHe <- data.table::fread("../processed_data/table_s3_Expected_Heterozygosity.txt") %>% 
   dplyr::rename(af=allele_frequency,hets=He)
-
 
 majorAF_data <- majorAF_ExpectedHe %>% 
   dplyr::group_by(ref_STR,n_st) %>% 
@@ -514,15 +517,20 @@ fig_3e <- ggplot(pca_SNV, aes(x=PC1,y=PC2)) +
 
 ###### fig_3f ######
 
-data_fig_3f <- majorAF_ExpectedHe %>% 
-  dplyr::select(Chr,start,ref_STR,hets,n_st) %>% 
-  dplyr::distinct()  %>% 
-  dplyr::filter(Chr != "MtDNA")
+snvs_He <- data.table::fread("../processed_data/Expected_Heterozygosity_swept_SNVs.txt") %>% 
+  dplyr::rename(hets=He)
 
+data_fig_3f <- majorAF_ExpectedHe %>% 
+  dplyr::select(Chr,start,hets,n_st) %>% 
+  dplyr::distinct()  %>% 
+  dplyr::mutate(type=n_st)  %>% 
+  dplyr::bind_rows(snvs_He) %>% 
+  dplyr::filter(Chr != "MtDNA") %>% 
+  dplyr::mutate(start=as.numeric(start)/1e6)
 
 fig_3f <- ggpubr::ggscatter(data_fig_3f, 
-                                      x = "start", y = "hets",  point=FALSE, palette = c("#00AFBB", "#E7B800", "#FC4E07"),
-                                      add = "loess", conf.int = FALSE,color="n_st" ) + 
+                                      x = "start", y = "hets",  point=FALSE, palette = c("#00AFBB", "#E7B800","gray69", "#FC4E07"),
+                                      add = "loess", conf.int = FALSE,color="type" ) + 
   labs(x= "Genomic position (Mb)",
        y= expression(italic(H)[E])) +
   facet_grid(.~Chr,scales="free")+
@@ -743,7 +751,8 @@ fig_4f <- ggpubr::ggboxplot(subset(data_fig_4f, motif_length %in% c(1,2)), x="mu
   theme(legend.position = "none")+
   scale_color_manual(values = c( "black", 'darkgray') ) +
   labs(x="Mutations",y="O1MA-O2MA\nMutation rate" ) + 
-  facet_grid(.~motif_length,scales="free") +
+  facet_grid(.~motif_length,scales="free", 
+             labeller = labeller(motif_length = motif_length.labs)) +
   ggpubr::stat_compare_means( 
     aes(group = Fitness),
     label = "p.signif",   label.y = 1e-04,
@@ -889,7 +898,8 @@ fig_S1a <-  ggplot() +
 
 fig_S1b <- ggplot() + 
   geom_histogram(data=str_dist,aes(x=start/1e6,fill=factor(motif_length) ),bins = 50 )  + 
-  facet_grid(motif_length~Chr,scales = "free")+
+  facet_grid(motif_length~Chr,scales = "free", 
+             labeller = labeller(motif_length = motif_length.labs))+
   theme_cust +
   xlab("Genomic Position (Mb)")+
   ylab("Number of STRs")  +
@@ -962,7 +972,8 @@ ggsave(fig_S2, filename = paste( "../figures/Supp_fig2_perfectSTR.jpg",sep = "")
 
 fig_S3 <- ggplot() + 
   geom_histogram(data=str_dist_polym,aes(x=start/1e6,fill=factor(motif_length) ),bins = 50 )  + 
-  facet_grid(motif_length~Chr,scales = "free")+
+  facet_grid(motif_length~Chr,scales = "free", 
+             labeller = labeller(motif_length = motif_length.labs))+
   theme_cust +
   xlab("Genomic Position (Mb)")+
   ylab("Number of polymorphic STRs")  +
@@ -1181,7 +1192,8 @@ expansion_contractionS_134 <- table_s1_poly %>%
 fig_S5a <- ggplot(subset(expansion_contractionS_134,motif_length==1),aes(x=motif_geno,y=frac,fill=factor(diff))) + 
   geom_bar(stat='identity', position = position_stack(reverse = TRUE)) +
   theme_cust +
-  facet_wrap(.~motif_length,scales = "free") +
+  facet_wrap(.~motif_length,scales = "free", 
+             labeller = labeller(motif_length = motif_length.labs)) +
   coord_flip() +
   scale_fill_manual(values=c("#E7B800", "#00AFBB","gray69")) +
   xlab("Motif")+
@@ -1197,7 +1209,8 @@ fig_S5a <- ggplot(subset(expansion_contractionS_134,motif_length==1),aes(x=motif
 fig_S5b <- ggplot(subset(expansion_contractionS_134,motif_length==3),aes(x=motif_geno,y=frac,fill=factor(diff))) + 
   geom_bar(stat='identity', position = position_stack(reverse = TRUE)) +
   theme_cust +
-  facet_wrap(.~motif_length,scales = "free") +
+  facet_wrap(.~motif_length,scales = "free", 
+             labeller = labeller(motif_length = motif_length.labs)) +
   coord_flip() +
   scale_fill_manual(values=c("#E7B800", "#00AFBB","gray69")) +
   xlab("Motif")+
@@ -1212,7 +1225,8 @@ fig_S5b <- ggplot(subset(expansion_contractionS_134,motif_length==3),aes(x=motif
 fig_S5c <- ggplot(subset(expansion_contractionS_134,motif_length==4),aes(x=motif_geno,y=frac,fill=factor(diff))) + 
   geom_bar(stat='identity', position = position_stack(reverse = TRUE)) +
   theme_cust +
-  facet_wrap(.~motif_length,scales = "free") +
+  facet_wrap(.~motif_length,scales = "free", 
+             labeller = labeller(motif_length = motif_length.labs)) +
   coord_flip() +
   scale_fill_manual(values=c("#E7B800", "#00AFBB","gray69")) +
   xlab("Motif")+
@@ -1587,7 +1601,8 @@ fig_S8 <- ggpubr::ggboxplot(data_fig_S8, x="mutation",y="mutation_rate",outlier.
   geom_point( position = position_jitterdodge(jitter.width = 0.2) ,aes(color=strain), size=0.5, alpha=0.8)+
   theme_cust +
   theme(legend.position = "bottom")+
-  facet_grid( motif_length~.,scales = "free")+
+  facet_grid( motif_length~.,scales = "free", 
+              labeller = labeller(motif_length = motif_length.labs))+
   scale_color_manual(values = c("orange","#007e2f","#ffcd12","#721b3e") ) +
   labs(x="Mutations",y="ANC-O1MA mutation rate",color="Strain" ) + 
   ggpubr::stat_compare_means( 
